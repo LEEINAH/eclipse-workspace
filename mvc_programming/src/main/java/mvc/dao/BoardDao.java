@@ -346,6 +346,7 @@ public class BoardDao {
 		return value;
 	}
 	
+	// 게시물 답변 기능
 	public int boardReply(BoardVo bv) {
 		
 		int value = 0;
