@@ -1,0 +1,286 @@
+package mvc.controller;
+
+
+import mvc.dao.BoardDao;
+import mvc.vo.BoardVo;
+import mvc.vo.Criteria;
+import mvc.vo.PageMaker;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+
+import jakarta.servlet.RequestDispatcher;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.Part;
+
+
+
+@WebServlet("/BoardController")
+public class BoardController extends HttpServlet {
+	private static final long serialVersionUID = 1L;
+       
+	private String location; // 전역 변수 초기화 => 이동할 페이지
+	
+	public BoardController(String location) {
+		this.location = location;
+	}
+	
+	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		
+		String paramMethod="";  //전송 방식이 sendRedirect면 S   forward방식이면 F
+		String url="";
+		
+		if (location.equals("boardList.aws")) { // 가상경로 (location이 boardList.aws 이면 실행)
+			System.out.println("boardList");
+			String page = request.getParameter("page");
+			
+			if (page == null) {
+				page = "1";
+			}
+			
+			int pageInt = Integer.parseInt(page);
+			
+			Criteria cri = new Criteria();
+			cri.setPage(pageInt);
+			
+			PageMaker pm = new PageMaker();
+			pm.setCri(cri);                                            // <----------- pageMaker에 Criteria 담아서 가지고 다닌다
+			
+			BoardDao bd = new BoardDao();
+			// System.out.println("bd" + bd);
+			
+			// 페이징 처리하기 위한 전체 데이터 갯수 가져오기
+			int boardCnt = bd.boardTotalCount();
+			// System.out.println("게시물 수는? : " + boardCnt);       // <----------- pageMaker에 전체 게시물 수를 담아서 페이지 계산
+			pm.setTotalCount(boardCnt);
+			
+			ArrayList<BoardVo> alist = bd.boardSelectAll(cri);
+			// System.out.println("alist ==> " + alist); // 객체 주소가 나오면 객체가 생성된 것을 짐작 할 수 있다
+			
+			request.setAttribute("alist", alist); // 화면까지 가지고 가기 위해 request 객체에 담는다
+			request.setAttribute("pm", pm);       // forward 방식으로 넘기기 때문에 공유가 가능하다
+			
+			paramMethod = "F";
+			url = "/board/boardList.jsp"; // 실제 내부경로
+			
+		} else if (location.equals("boardWrite.aws")) { // 가상경로 (location이 boardWrite.aws 이면 실행)
+			
+			paramMethod = "F"; // 포워드 방식은 내부에서 공유하는 것이기 때문에 내부에서 활동하고 이동한다 
+			url = "/board/boardWrite.jsp"; // 실제 내부경로
+			
+		} else if (location.equals("boardWriteAction.aws")) {
+	         // System.out.println("boardWriteAction.aws");
+	         // 1. 파라미터 값을 넘겨 받는다
+
+	         // 라이브러리 방식
+	         // String savePath =
+	         // "D:\\dev\\eclipse-workspace\\mvc_programming\\src\\main\\webapp\\images"; >
+	         // 이게 d드라이브 경로 원래 맞춰야하는 경로임 + 깃로컬경로
+
+	         // C:\Users\admin\git\mvc_programming\MVC\mvc_programming\src\main\webapp\images
+	         // >> 이게 지금 저장되고 있는 경로 + 깃연동 경로
+
+			// 저장되는 경로
+	         String savePath = "D:\\dav\\eclipse-workspace\\mvc_programming\\src\\main\\webapp\\image\\"; 
+	         System.out.println("savePath" + savePath); // 찍어보기
+
+	         // 업로드 되는 파일 사이즈
+	         int fsize = (int) request.getPart("filename").getSize();
+	         System.out.println("fsize생성된지 확인 : " + fsize); // 찍어보기
+
+	         // 원본 파일 이름
+	         String originFileName = "";
+	         if (fsize != 0) {
+
+	            Part filePart = (Part) request.getPart("filename"); // 넘어온 멀티파트 형식의 파일을 Part 클래스로 담는다
+	            System.out.println("filePart==> " + filePart); // 찍어보기
+	            originFileName = getFileName(filePart);
+	            System.out.println("originFileName ==> " + originFileName); // 찍어보기
+	            System.out.println("저장되는 위치  ==> " + savePath + originFileName); // 찍어보기
+
+	            File file = new File(savePath + originFileName); // 파일 객체 생성
+	            InputStream is = filePart.getInputStream(); // 파일 읽어들이는 스트림 생성
+	            FileOutputStream fos = null;
+	            
+	            fos = new FileOutputStream(file); // 파일 작성 및 완성하는 스트림 생성
+	            
+	            int temp = -1;
+	            
+
+				while ((temp = is.read()) != -1) {   //반복문을 돌려서 읽어드린 데이터를 output에 작성한다
+					fos.write(temp);
+					} 
+				is.close();   //input 스트림 객체 소명
+				fos.close(); //Output 스트림 객체소명          
+	         }
+			
+			// 1. 파라미터 값을 넘겨 받는다
+			String subject = request.getParameter("subject");
+			String contents = request.getParameter("contents");
+			String writer = request.getParameter("writer");
+			String password = request.getParameter("password");
+			
+			HttpSession session = request.getSession(); // 세션 객체를 불러와서
+			int midx = Integer.parseInt(session.getAttribute("midx").toString()); // 로그인 할 때 담았던 세션 변수 midx 값을 꺼낸다
+			
+			BoardVo bv = new BoardVo();
+			bv.setSubject(subject);
+			bv.setContents(contents);
+			bv.setWriter(writer);
+			bv.setPassword(password);
+			bv.setMidx(midx);
+			
+			// 2. DB 처리한다
+			BoardDao bd = new BoardDao();
+			int value = bd.boardInsert(bv);
+			
+			// 3. 처리 후 이동한다 (sendRedirect)
+			if (value == 2) {
+				paramMethod = "S";
+				url = request.getContextPath() + "/board/boardList.aws";
+			} else {
+				paramMethod = "S";
+				url = request.getContextPath() + "/board/boardWrite.aws";
+			}
+			
+		} else if (location.equals("boardContents.aws")) {
+			System.out.println("boardContents.aws");
+			
+			// 1. 넘어온 값 받기
+			String bidx = request.getParameter("bidx");
+			System.out.println("bidx --> " + bidx);
+			int bidxInt = Integer.parseInt(bidx); // boardSelectOne에 매개 변수로 넣어주기 위해 문자형으로 넘어온 bidx를 숫자로 변환시켜준다 
+			
+			// 2. 처리하기
+			BoardDao bd = new BoardDao(); // 객체 생성
+			bd.boardViewCntUpdate(bidxInt);
+			BoardVo bv = bd.boardSelectOne(bidxInt); // 생성한 메소드 호출 (해당되는 bidx의 게시물 데이터 가져옴)
+			
+			request.setAttribute("bv", bv); // 포워드 방식이라 같은 영역 안에 있기 때문에 공유해서 jsp 페이지에서 꺼내 쓸 수 있다
+			
+			// 3. 이동해서 화면 보여주기
+			paramMethod = "F"; // 화면을 보여주기 위해서 같은 영역 내부 안에 jsp 페이지를 보여준다
+			url = "/board/boardContents.jsp";
+			
+		} else if (location.equals("boardModify.aws")) {
+			System.out.println("boardModify.aws");
+			
+			String bidx = request.getParameter("bidx");
+			int bidxInt = Integer.parseInt(bidx); // boardSelectOne에 매개 변수로 넣어주기 위해 문자형으로 넘어온 bidx를 숫자로 변환시켜준다
+			
+			BoardDao bd = new BoardDao();  // 객체 생성
+			BoardVo bv = bd.boardSelectOne(bidxInt);
+			
+			request.setAttribute("bv", bv);
+			
+			paramMethod = "F"; // 포워드 방식은 내부에서 공유하는 것이기 때문에 내부에서 활동하고 이동한다 
+			url = "/board/boardModify.jsp"; // 실제 내부경로
+			
+		} else if (location.equals("boardModifyAction.aws")) {
+			System.out.println("boardModifyAction.aws");
+			
+			// 1. 파라미터 값을 넘겨 받는다
+			String subject = request.getParameter("subject");
+			String contents = request.getParameter("contents");
+			String writer = request.getParameter("writer");
+			String password = request.getParameter("password");
+			String bidx = request.getParameter("bidx");
+			int bidxInt = Integer.parseInt(bidx); // boardSelectOne에 매개 변수로 넣어주기 위해 문자형으로 넘어온 bidx를 숫자로 변환시켜준다
+			
+			BoardDao bd = new BoardDao();  // 객체 생성
+			BoardVo bv = bd.boardSelectOne(bidxInt);
+			
+			// 2. 처리하기
+			
+			paramMethod = "S";
+			// 비밀번호 체크
+			if (password.equals(bv.getPassword())) {
+				// 비밀번호가 같으면
+				BoardDao bd2 = new BoardDao();
+				BoardVo bv2 = new BoardVo();
+				
+				bv2.setSubject(subject);
+				bv2.setContents(contents);
+				bv2.setWriter(writer);
+				bv2.setPassword(password);
+				bv2.setBidx(bidxInt);
+								
+				int value = bd2.boardUpdate(bv2);
+				
+				if (value == 1) {
+					url = request.getContextPath() + "/board/boardContents.aws?bidx=" + bidx;
+				} else {
+					url = request.getContextPath() + "/board/boardModify.aws?bidx=" + bidx;
+				}		
+			} else {
+			    // 비밀번호가 다르면
+				response.setContentType("text/html; charset=UTF-8");  // 응답 콘텐츠 타입 설정
+			    PrintWriter out = response.getWriter();  // PrintWriter 객체 가져오기
+				
+			    out.println("<script>");
+			    out.println("alert('비밀번호가 다릅니다.');");
+			    // out.println("location.href='" + request.getContextPath() + "/board/boardModify.aws?bidx=" + bidx + "';");
+			    out.println("history.back();");
+			    out.println("</script>");
+			    out.flush();  // 버퍼에 남아 있는 데이터를 클라이언트로 전송
+			}
+				 /*
+				 * else { 
+				 * // 비밀번호가 다르면 
+				 * url = request.getContextPath() + "/board/boardModify.aws?bidx=" + bidx; 
+				 * }
+				 */
+		} else if (location.equals("boardRecom.aws")) {
+			 
+			String bidx = request.getParameter("bidx");
+			int bidxInt = Integer.parseInt(bidx);
+			
+			BoardDao bd = new BoardDao();
+			int recom = bd.boardRecomUpdate(bidxInt);
+			
+			PrintWriter out = response.getWriter();
+			out.println("{\"recom\":\"" + recom + "\"}");
+			
+			// paramMethod = "S";
+			// url = "/board/boardContents.aws?bidx=" + bidx;
+		}
+		
+		
+		
+		
+		
+		
+		if (paramMethod.equals("F")) {		
+			RequestDispatcher rd  =request.getRequestDispatcher(url);  
+			rd.forward(request, response); 				
+		} else if (paramMethod.equals("S")) {
+			response.sendRedirect(url);
+		}	
+	}
+
+	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		doGet(request, response);
+	}
+	
+	public String getFileName(Part filePart) { // 메서드 하나 더 생성 첨부파일 업로드 하기 위한
+
+	      for (String filePartData : filePart.getHeader("Content-Disposition").split(";")) {
+	         System.out.println(filePartData);
+
+	         if (filePartData.trim().startsWith("filename")) {
+	            return filePartData.substring(filePartData.indexOf("=") + 1).trim().replace("\"", "");
+	         }
+	      }
+	      return null;
+
+	}
+}
