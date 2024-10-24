@@ -27,7 +27,7 @@ public class BoardDao {
 		
 		ArrayList<BoardVo> alist = new ArrayList<BoardVo>(); // ArrayList 컬렉션 객체에 BoardVo를 담겠다 BoardVo는 컬럼 값을 담겠다
 		String sql = "SELECT *\r\n"
-				+ "FROM BOARD\r\n"
+				+ "FROM BOARD\r\n where delyn='N'"
 				+ "ORDER BY originbidx desc, depth ASC LIMIT ?, ?";
 		ResultSet rs = null; // DB 값을 가져오기 위한 전용 클래스
 	
@@ -117,9 +117,10 @@ public class BoardDao {
 		String writer = bv.getWriter();
 		String password = bv.getPassword();
 		int midx = bv.getMidx();
+		String filename = bv.getFilename();
 		
-		String sql = "INSERT INTO BOARD(originbidx, depth, level_, subject, contents, writer, password, midx)\r\n"
-				   + "value(null, 0, 0, ?, ?, ?, ?, ?)";
+		String sql = "INSERT INTO BOARD(originbidx, depth, level_, subject, contents, writer, password, midx, filename)\r\n"
+				   + "value(null, 0, 0, ?, ?, ?, ?, ?, ?)";
 		String sql2 = "update board \r\n"
 	            + "set originbidx = (select * from (select max(bidx) from board) as temp) \r\n"
 	            + "where bidx = (select * from (select max(bidx) from board) as temp)";
@@ -131,6 +132,7 @@ public class BoardDao {
 			pstmt.setString(3, writer);
 			pstmt.setString(4, password);
 			pstmt.setInt(5, midx);
+			pstmt.setString(6, filename);
 			int exec = pstmt.executeUpdate(); // 실행 되면 1 안되면 0
 			
 			pstmt = conn.prepareStatement(sql2);
@@ -315,6 +317,94 @@ public class BoardDao {
 		}
 		
 		return recom;
+	}
+	
+	// 게시물 삭제하기
+	public int boardDelete(int bidx, String password) {
+		
+		int value = 0;
+		String sql = "UPDATE board\r\n"
+				+ "SET delyn = 'Y'\r\n"
+				+ "WHERE bidx=? AND password=?";
+		
+		try {
+			pstmt = conn.prepareStatement(sql);
+			pstmt.setInt(1, bidx);
+			pstmt.setString(2, password);
+			value = pstmt.executeUpdate(); // 성공하면 1, 실패하면 0
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try { // 각 객체를 소멸시키고 DB 연결 끊는다
+				pstmt.close();
+				conn.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		return value;
+	}
+	
+	public int boardReply(BoardVo bv) {
+		
+		int value = 0;
+		int maxbidx = 0;
+		
+		String sql = "UPDATE board SET depth = depth + 1 WHERE originbidx = ? AND depth > ?";
+		String sql2 = "INSERT INTO board (originbidx, depth, level_, subject, contents, writer, midx, filename, password)"
+					+ "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)";
+		String sql3 = "SELECT MAX(bidx) AS maxbidx FROM board WHERE originbidx=?";
+		
+		try {
+			conn.setAutoCommit(false); // 수동 커밋으로 하겠다
+			pstmt = conn.prepareStatement(sql);
+			pstmt.setInt(1, bv.getOriginbidx());
+			pstmt.setInt(2, bv.getDepth());
+			int exec = pstmt.executeUpdate(); // 실행 되면 1 안되면 0
+			
+			pstmt = conn.prepareStatement(sql2);
+			pstmt.setInt(1, bv.getOriginbidx());
+			pstmt.setInt(2, bv.getDepth() + 1);
+			pstmt.setInt(3, bv.getLevel_() + 1);
+			pstmt.setString(4, bv.getSubject());
+			pstmt.setString(5, bv.getContents());
+			pstmt.setString(6, bv.getWriter());
+			pstmt.setInt(7, bv.getMidx());
+			pstmt.setString(8, bv.getFilename());
+			pstmt.setString(9, bv.getPassword());
+			int exec2 = pstmt.executeUpdate(); // 실행 되면 1 안되면 0
+			
+			ResultSet rs = null;
+			pstmt = conn.prepareStatement(sql3);
+			pstmt.setInt(1, bv.getOriginbidx());
+			rs = pstmt.executeQuery();
+			
+			if (rs.next() == true) {
+				maxbidx = rs.getInt("maxbidx");
+			}
+			
+			conn.commit(); // 일괄 처리 커밋
+			
+			// value = exec + exec2;
+			
+		} catch (SQLException e) {
+			try {
+				conn.rollback(); // 실행 중 오류 발생 시 rollback 처리 
+			} catch (SQLException e1) {
+				e1.printStackTrace();
+			}
+			e.printStackTrace();
+		} finally {
+			try { // 각 객체를 소멸시키고 DB 연결 끊는다
+				pstmt.close();
+				conn.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		return maxbidx;
 	}
 	
 	

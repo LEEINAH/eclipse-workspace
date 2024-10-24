@@ -75,9 +75,9 @@ $(document).ready(function() {
 	<div class="content">
 		<%=bv.getContents() %>
 	</div>
-	<% if (bv.getFilename() != null) { %>
+	<% if (bv.getFilename() == null || bv.getFilename().equals("") ) {}else{ %>
 	<a href="#" class="fileDown">
-	<img src="<%=bv.getFilename() %>">
+	<img src="<%=request.getContextPath()%>/image/<%=bv.getFilename()%>">
 	첨부파일입니다.
 	</a>
 	<% } %>
@@ -85,8 +85,8 @@ $(document).ready(function() {
 	
 <div class="btnBox">
 	<a class="btn aBtn" href="<%=request.getContextPath() %>/board/boardModify.aws?bidx=<%=bv.getBidx() %>">수정</a>
-	<a class="btn aBtn" href="./delete.html">삭제</a>
-	<a class="btn aBtn" href="./comment.html">답변</a>
+	<a class="btn aBtn" href="<%=request.getContextPath() %>/board/boardDelete.aws?bidx=<%=bv.getBidx() %>">삭제</a>
+	<a class="btn aBtn" href="<%=request.getContextPath() %>/board/boardReply.aws?bidx=<%=bv.getBidx() %>">답변</a>
 	<a class="btn aBtn" href="./list.html">목록</a>
 </div>
 

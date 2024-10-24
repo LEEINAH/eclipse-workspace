@@ -83,13 +83,10 @@ public class BoardController extends HttpServlet {
 
 	         // 라이브러리 방식
 	         // String savePath =
-	         // "D:\\dev\\eclipse-workspace\\mvc_programming\\src\\main\\webapp\\images"; >
+	         // "D:\\dev\\eclipse-workspace\\mvc_programming\\src\\main\\webapp\\image"; >
 	         // 이게 d드라이브 경로 원래 맞춰야하는 경로임 + 깃로컬경로
 
-	         // C:\Users\admin\git\mvc_programming\MVC\mvc_programming\src\main\webapp\images
-	         // >> 이게 지금 저장되고 있는 경로 + 깃연동 경로
-
-			// 저장되는 경로
+			 // 저장되는 경로
 	         String savePath = "D:\\dav\\eclipse-workspace\\mvc_programming\\src\\main\\webapp\\image\\"; 
 	         System.out.println("savePath" + savePath); // 찍어보기
 
@@ -121,6 +118,8 @@ public class BoardController extends HttpServlet {
 					} 
 				is.close();   //input 스트림 객체 소명
 				fos.close(); //Output 스트림 객체소명          
+	         } else {
+	        	 originFileName = "";
 	         }
 			
 			// 1. 파라미터 값을 넘겨 받는다
@@ -138,13 +137,14 @@ public class BoardController extends HttpServlet {
 			bv.setWriter(writer);
 			bv.setPassword(password);
 			bv.setMidx(midx);
+			bv.setFilename(originFileName);
 			
 			// 2. DB 처리한다
 			BoardDao bd = new BoardDao();
 			int value = bd.boardInsert(bv);
 			
 			// 3. 처리 후 이동한다 (sendRedirect)
-			if (value == 2) {
+			if (value == 2) { // value가 2인 이유 : sql 구문이 2개이기 때문에 (update, insert)
 				paramMethod = "S";
 				url = request.getContextPath() + "/board/boardList.aws";
 			} else {
@@ -252,6 +252,126 @@ public class BoardController extends HttpServlet {
 			
 			// paramMethod = "S";
 			// url = "/board/boardContents.aws?bidx=" + bidx;
+		} else if (location.equals("boardDelete.aws")) {
+			
+			String bidx = request.getParameter("bidx");
+			
+			request.setAttribute("bidx", bidx);
+			
+			paramMethod = "F";
+			url = "/board/boardDelete.jsp";
+			
+		} else if (location.equals("boardDeleteAction.aws")) {
+			
+			String bidx = request.getParameter("bidx");
+			String password = request.getParameter("password");
+			
+			// 처리하기
+			BoardDao bd = new BoardDao();
+			int value = bd.boardDelete(Integer.parseInt(bidx), password); // value = 성공하면 1, 실패하면 2
+			
+			paramMethod = "S";
+			
+			if (value == 1) {
+				url = request.getContextPath() + "/board/boardList.aws";
+			} else {
+				url = request.getContextPath() + "/board/boardDelete.aws?bidx=" + bidx;
+			}
+		} else if (location.equals("boardReply.aws")) {
+			
+			String bidx = request.getParameter("bidx");
+			
+			BoardDao bd = new BoardDao();  // 객체 생성
+			BoardVo bv = bd.boardSelectOne(Integer.parseInt(bidx)); // Selectone 메소드를 이용해서 해당 bidx의 게시글을 뽑아낸다
+			
+			int originbidx = bv.getOriginbidx(); // 뽑아낸 게시글의 originbidx, depth, level_을 각 변수에 담는다
+			int depth = bv.getDepth();
+			int level_ = bv.getLevel_();
+			
+			request.setAttribute("bidx", Integer.parseInt(bidx)); // 담은 변수를 request.setAttribute에 담고 가져간다
+			request.setAttribute("originbidx", originbidx);
+			request.setAttribute("depth", depth);
+			request.setAttribute("level_", level_);
+			
+			paramMethod = "F";
+			url = "/board/boardReply.jsp";
+		} else if (location.equals("boardReplyAction.aws")) {
+			
+			System.out.println("boardReplyAction.aws");
+			
+			// 저장되는 경로
+	         String savePath = "D:\\dav\\eclipse-workspace\\mvc_programming\\src\\main\\webapp\\image\\"; 
+	         System.out.println("savePath" + savePath); // 찍어보기
+
+	         // 업로드 되는 파일 사이즈
+	         int fsize = (int) request.getPart("filename").getSize();
+	         System.out.println("fsize생성된지 확인 : " + fsize); // 찍어보기
+
+	         // 원본 파일 이름
+	         String originFileName = "";
+	         if (fsize != 0) {
+
+	            Part filePart = (Part) request.getPart("filename"); // 넘어온 멀티파트 형식의 파일을 Part 클래스로 담는다
+	            // System.out.println("filePart==> " + filePart); // 찍어보기
+	            originFileName = getFileName(filePart);
+	            // System.out.println("originFileName ==> " + originFileName); // 찍어보기
+	            // System.out.println("저장되는 위치  ==> " + savePath + originFileName); // 찍어보기
+
+	            File file = new File(savePath + originFileName); // 파일 객체 생성
+	            InputStream is = filePart.getInputStream(); // 파일 읽어들이는 스트림 생성
+	            FileOutputStream fos = null;
+	            
+	            fos = new FileOutputStream(file); // 파일 작성 및 완성하는 스트림 생성
+	            
+	            int temp = -1;
+	            
+
+				while ((temp = is.read()) != -1) {   //반복문을 돌려서 읽어드린 데이터를 output에 작성한다
+					fos.write(temp);
+					} 
+				is.close();   //input 스트림 객체 소명
+				fos.close(); //Output 스트림 객체소명          
+	         } else {
+	        	 originFileName = "";
+	         }
+			
+			// 1. 파라미터 값을 넘겨 받는다
+			String subject = request.getParameter("subject");
+			String contents = request.getParameter("contents");
+			String writer = request.getParameter("writer");
+			String password = request.getParameter("password");
+			String bidx = request.getParameter("bidx");
+			String originbidx = request.getParameter("originbidx");
+			String depth = request.getParameter("depth");
+			String level_ = request.getParameter("level_");
+			
+			HttpSession session = request.getSession(); // 세션 객체를 불러와서
+			int midx = Integer.parseInt(session.getAttribute("midx").toString()); // 로그인 할 때 담았던 세션 변수 midx 값을 꺼낸다
+			
+			BoardVo bv = new BoardVo();
+			bv.setSubject(subject);
+			bv.setContents(contents);
+			bv.setWriter(writer);
+			bv.setPassword(password);
+			bv.setMidx(midx);
+			bv.setFilename(originFileName); // 파일 이름 DB 컬럼 추가
+			bv.setBidx(Integer.parseInt(bidx));
+			bv.setOriginbidx(Integer.parseInt(originbidx));
+			bv.setDepth(Integer.parseInt(depth));
+			bv.setLevel_(Integer.parseInt(level_));
+			
+			BoardDao bd = new BoardDao();
+			int maxbidx = bd.boardReply(bv);
+			
+			paramMethod = "S";
+			if (maxbidx != 0) {
+				url = request.getContextPath() + "/board/boardContents.aws?bidx=" + maxbidx;
+			} else {
+				url = request.getContextPath() + "/board/boardReply.aws?bidx=" + bidx;
+			}
+			
+			
+			
 		}
 		
 		
