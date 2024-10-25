@@ -6,6 +6,7 @@ import mvc.dbcon.Dbconn;
 import mvc.vo.BoardVo;
 import mvc.vo.Criteria;
 import mvc.vo.MemberVo;
+import mvc.vo.SearchCriteria;
 
 
 public class BoardDao {
@@ -20,14 +21,23 @@ public class BoardDao {
 	}
 	
 	// 모든 게시물 보기
-	public ArrayList<BoardVo> boardSelectAll(Criteria cri) {
+	public ArrayList<BoardVo> boardSelectAll(SearchCriteria scri) {
 		
-		int page = cri.getPage(); // 페이지 번호 
-		int perPageNum = cri.getPerPageNum(); // 화면 노출 개수
+		int page = scri.getPage(); // 페이지 번호 
+		int perPageNum = scri.getPerPageNum(); // 화면 노출 개수
+		
+		String str = "";
+		String keyword = scri.getKeyword();
+		String searchType = scri.getSearchType();
+		
+		// 키워드가 존재한다면 like 구문을 활용한다
+		if (!scri.getKeyword().equals("")) {
+			str = "AND "+searchType+" LIKE CONCAT('%','"+keyword+"','%')";
+		}
 		
 		ArrayList<BoardVo> alist = new ArrayList<BoardVo>(); // ArrayList 컬렉션 객체에 BoardVo를 담겠다 BoardVo는 컬럼 값을 담겠다
 		String sql = "SELECT *\r\n"
-				+ "FROM BOARD\r\n where delyn='N'"
+				+ "FROM BOARD\r\n where delyn='N'"+str+""
 				+ "ORDER BY originbidx desc, depth ASC LIMIT ?, ?";
 		ResultSet rs = null; // DB 값을 가져오기 위한 전용 클래스
 	
@@ -46,6 +56,7 @@ public class BoardDao {
 				String writeday = rs.getString("writeday");
 				int viewcnt = rs.getInt("viewcnt");
 				int recom = rs.getInt("recom");
+				int level_ = rs.getInt("level_");
 				
 				BoardVo bv = new BoardVo(); // 첫 행부터 bv에 옮겨 담기
 				bv.setBidx(bidx);
@@ -55,6 +66,7 @@ public class BoardDao {
 				bv.setViewcnt(viewcnt);
 				bv.setRecom(recom);
 				bv.setWriteday(writeday);
+				bv.setLevel_(level_);
 				alist.add(bv);                // ArrayList 객체에 하나씩 추가한다
 			}
 			
@@ -74,12 +86,22 @@ public class BoardDao {
 	}
 	
 	// 게시판 전체 갯수 구하기
-	public int boardTotalCount() {
+	public int boardTotalCount(SearchCriteria scri) {
+		
+		String str = "";
+		String keyword = scri.getKeyword();
+		String searchType = scri.getSearchType();
+		
+		// 키워드가 존재한다면 like 구문을 활용한다
+		if (!scri.getKeyword().equals("")) {
+			str = "AND "+searchType+" LIKE CONCAT('%','"+keyword+"','%')";
+		}
+		
 		int value = 0;
 		// 1. 쿼리 만들기
 		String sql = "SELECT COUNT(*) AS cnt\r\n"
 				+ "FROM BOARD\r\n"
-				+ "WHERE delyn = 'N'";
+				+ "WHERE delyn = 'N'"+str+"";
 		
 		// 2. conn 객체 안에 있는 구문 클래스 호출하기
 		// 3. DB 컬럼 값을 받는 전용 클래스 ResultSet 호출 (ResultSet 특징은 데이터를 그대로 복사하기 때문에 전달이 빠름)
@@ -118,9 +140,10 @@ public class BoardDao {
 		String password = bv.getPassword();
 		int midx = bv.getMidx();
 		String filename = bv.getFilename();
+		String ip = bv.getIp();
 		
-		String sql = "INSERT INTO BOARD(originbidx, depth, level_, subject, contents, writer, password, midx, filename)\r\n"
-				   + "value(null, 0, 0, ?, ?, ?, ?, ?, ?)";
+		String sql = "INSERT INTO BOARD(originbidx, depth, level_, subject, contents, writer, password, midx, filename, ip)\r\n"
+				   + "value(null, 0, 0, ?, ?, ?, ?, ?, ?, ?)";
 		String sql2 = "update board \r\n"
 	            + "set originbidx = (select * from (select max(bidx) from board) as temp) \r\n"
 	            + "where bidx = (select * from (select max(bidx) from board) as temp)";
@@ -133,6 +156,7 @@ public class BoardDao {
 			pstmt.setString(4, password);
 			pstmt.setInt(5, midx);
 			pstmt.setString(6, filename);
+			pstmt.setString(7, ip);
 			int exec = pstmt.executeUpdate(); // 실행 되면 1 안되면 0
 			
 			pstmt = conn.prepareStatement(sql2);
@@ -353,8 +377,8 @@ public class BoardDao {
 		int maxbidx = 0;
 		
 		String sql = "UPDATE board SET depth = depth + 1 WHERE originbidx = ? AND depth > ?";
-		String sql2 = "INSERT INTO board (originbidx, depth, level_, subject, contents, writer, midx, filename, password)"
-					+ "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)";
+		String sql2 = "INSERT INTO board (originbidx, depth, level_, subject, contents, writer, midx, filename, password, ip)"
+					+ "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		String sql3 = "SELECT MAX(bidx) AS maxbidx FROM board WHERE originbidx=?";
 		
 		try {
@@ -374,6 +398,7 @@ public class BoardDao {
 			pstmt.setInt(7, bv.getMidx());
 			pstmt.setString(8, bv.getFilename());
 			pstmt.setString(9, bv.getPassword());
+			pstmt.setString(10, bv.getIp());
 			int exec2 = pstmt.executeUpdate(); // 실행 되면 1 안되면 0
 			
 			ResultSet rs = null;

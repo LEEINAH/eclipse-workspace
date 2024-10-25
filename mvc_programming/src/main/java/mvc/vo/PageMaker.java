@@ -11,7 +11,15 @@ public class PageMaker {
 	private boolean prev;           // 이전 버튼
 	private boolean next;           // 다음 버튼
 	
-	private Criteria cri;
+	private SearchCriteria scri;
+
+	public SearchCriteria getScri() {
+		return scri;
+	}
+
+	public void setScri(SearchCriteria scri) {
+		this.scri = scri;
+	}
 
 	public int getDisplayPageNum() {
 		return displayPageNum;
@@ -61,24 +69,16 @@ public class PageMaker {
 	public void setNext(boolean next) {
 		this.next = next;
 	}
-
-	public Criteria getCri() {
-		return cri;
-	}
-
-	public void setCri(Criteria cri) {
-		this.cri = cri;
-	} 
 	
 	private void calcDate() {
 		// 1. 기본적으로 1에서부터 10까지 나타나게 설정한다 (페이지 네비게이션에서)
-		endPage = (int)(Math.ceil(cri.getPage() / (double)displayPageNum) * displayPageNum); // 모두 올림 처리하는 메소드 ceil()
+		endPage = (int)(Math.ceil(scri.getPage() / (double)displayPageNum) * displayPageNum); // 모두 올림 처리하는 메소드 ceil()
 		
 		// 2. endPage가 설정 되었으면 시작 페이지도 설정
 		startPage = (endPage - displayPageNum) + 1;
 		
 		// 3. 실제 게시물 수에 따라서 endPage를 구하겠다
-		int tempEndPage	= (int)(Math.ceil(totalCount / (double)cri.getPerPageNum()));
+		int tempEndPage	= (int)(Math.ceil(totalCount / (double)scri.getPerPageNum()));
 		
 		// 4. 설정한 endPage와 실제 endPage를 비교 해서 최종 endPage를 구한다 
 		if (endPage > tempEndPage) {
@@ -87,7 +87,7 @@ public class PageMaker {
 		
 		// 5. 이전, 다음 버튼 만들기
 		prev = (startPage == 1 ? false : true); // 삼항연산자 사용
-		next = (endPage * cri.getPerPageNum() > totalCount ? false : true);
+		next = (endPage * scri.getPerPageNum() > totalCount ? false : true);
 		
 	}
 	

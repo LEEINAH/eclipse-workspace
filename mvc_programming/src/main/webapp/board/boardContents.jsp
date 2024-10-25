@@ -72,22 +72,25 @@ $(document).ready(function() {
 	<h2 class="contentTitle"><%=bv.getSubject() %> (조회수:<%=bv.getViewcnt() %>)</h2>
 	<input type="button" id="btn" value="추천(<%=bv.getRecom()%>)">
 	<p class="write"><%=bv.getWriter() %> (<%=bv.getWriteday() %>)</p>
+	<hr>
+	
 	<div class="content">
 		<%=bv.getContents() %>
 	</div>
 	<% if (bv.getFilename() == null || bv.getFilename().equals("") ) {}else{ %>
-	<a href="#" class="fileDown">
 	<img src="<%=request.getContextPath()%>/image/<%=bv.getFilename()%>">
-	첨부파일입니다.
-	</a>
 	<% } %>
+	
+	<p>
+	<a href="<%=request.getContextPath()%>/board/boardDownload.aws?filename=<%=bv.getFilename()%>" class="fileDown">
+	첨부파일 다운로드</a></p>
 </article>
 	
 <div class="btnBox">
 	<a class="btn aBtn" href="<%=request.getContextPath() %>/board/boardModify.aws?bidx=<%=bv.getBidx() %>">수정</a>
 	<a class="btn aBtn" href="<%=request.getContextPath() %>/board/boardDelete.aws?bidx=<%=bv.getBidx() %>">삭제</a>
 	<a class="btn aBtn" href="<%=request.getContextPath() %>/board/boardReply.aws?bidx=<%=bv.getBidx() %>">답변</a>
-	<a class="btn aBtn" href="./list.html">목록</a>
+	<a class="btn aBtn" href="<%=request.getContextPath() %>/board/boardList.aws">목록</a>
 </div>
 
 <article class="commentContents">
