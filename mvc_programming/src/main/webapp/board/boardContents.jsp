@@ -1,8 +1,13 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ page import="mvc.vo.BoardVo" %>   
-    
+
 <%
 BoardVo bv = (BoardVo)request.getAttribute("bv"); // Object타입이기 때문에 강제 형변환을 해서 BoardVo타입으로 만들어준다
+
+String memberName = "";
+if (session.getAttribute("memberName") != null) {
+	memberName = (String)session.getAttribute("memberName");
+}
 %>
     
 <!DOCTYPE html>
@@ -15,29 +20,9 @@ BoardVo bv = (BoardVo)request.getAttribute("bv"); // Object타입이기 때문�
 <!-- jquery CDN 주소 -->
 <script> 
 
-function check() {
-	  
-	  // 유효성 검사하기
-	  let fm = document.frm;
-	  
-	  if (fm.content.value == "") {
-		  alert("내용을 입력해주세요");
-		  fm.content.focus();
-		  return;
-	  }
-	  
-	  let ans = confirm("저장하시겠습니까?");
-	  
-	  if (ans == true) {
-		  fm.action="./detail.html";
-		  fm.method="post";
-		  fm.submit();
-	  }	  
-	  
-	  return;
-}
-
 $(document).ready(function() {
+	// alert("dddd");
+	$.boardCommentList();
 	
 	$("#btn").click(function() {
 		// alert("추천 버튼 클릭");
@@ -59,7 +44,69 @@ $(document).ready(function() {
 			}
 		});
 	});
+	
+	$("#cmtBtn").click(function() {
+		
+		let loginCheck = "<%=session.getAttribute("midx") %>";
+		
+		if (loginCheck == "" || loginCheck == "null" || loginCheck == null) {
+			alert("로그인을 해주세요.");
+			return;
+		}
+		
+		// 유효성 검사
+		let cwriter = $("#cwriter").val();
+		let ccontents = $("#ccontents").val();
+		
+		if (cwriter == "") {
+			alert("작성자를 입력해주세요.");
+			$("#cwriter").focus();
+			return;
+		} else if (ccontents == "") {
+			alert("내용을 입력해주세요.");
+			$("#ccontents").focus();
+			return;
+		}
+		
+		$.ajax({
+			type : "post", // 전송 방식
+			url : "<%=request.getContextPath()%>/comment/commentWriteAction.aws",
+			data : {"cwriter" : cwriter, 
+					"ccontents" : ccontents, 
+					"bidx" : "<%=bv.getBidx()%>", 
+					"midx" : "<%=session.getAttribute("midx")%>"},
+			// 가상 경로
+			dataType : "json", // json 타입은 문서에서 {"키 값" : "value 값", "키 값 2" : "value 값 2"}
+			success : function	(result) { // 결과가 넘어와서 성공했을 때 받는 영역
+				alert("전송 성공 테스트");	
+			
+				var str ="("+result.value+")";
+				alert(str);
+			},
+			error : function () { // 결과가 넘어와서 실패했을 때 받는 영역
+				alert("전송 실패");
+			}
+		});
+	});	
 });
+
+//jquery로 만드는 함수
+$.boardCommentList = function () { 
+	alert("dddd");
+	$.ajax({
+		type : "get", // 전송 방식
+		url : "<%=request.getContextPath()%>/comment/commentList.aws?bidx=<%=bv.getBidx()%>",
+		// 가상 경로
+		dataType : "json", // json 타입은 문서에서 {"키 값" : "value 값", "키 값 2" : "value 값 2"}
+		success : function	(result) { // 결과가 넘어와서 성공했을 때 받는 영역
+			alert("전송 성공 테스트");
+		},
+		error : function () { // 결과가 넘어와서 실패했을 때 받는 영역
+			alert("전송 실패");
+		}
+	});
+	
+}
 
 </script>
 </head>
@@ -95,12 +142,12 @@ $(document).ready(function() {
 
 <article class="commentContents">
 	<form name="frm">
-		<p class="commentWriter">admin</p>	
-		<input type="text" name="content">
-		<button type="button" class="replyBtn" onclick="check();">댓글쓰기</button>
-	</form>
-	
-	
+		<p class="commentWriter" style="width:100px;">
+		<input type="text" id="cwriter" name="cwriter" value="<%=memberName%>" readonly="readonly" style="width:100px;border:0px; text-align:center;">
+		</p>	
+		<input type="text" id="ccontents"  name="ccontents">
+		<button type="button" id="cmtBtn" class="replyBtn">댓글쓰기</button>
+	</form>	
 	<table class="replyTable">
 		<tr>
 			<th>번호</th>

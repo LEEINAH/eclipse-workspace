@@ -22,8 +22,8 @@ public class FrontController extends HttpServlet {
        
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		
-		request.setCharacterEncoding("UTF-8");
-	    response.setContentType("text/html;charset=UTF-8");
+		 request.setCharacterEncoding("UTF-8");
+	     response.setContentType("text/html;charset=UTF-8");
 		
 		// 전체 주소를 추출
 		// uri = /member/memberJoinAction.aws
@@ -41,6 +41,11 @@ public class FrontController extends HttpServlet {
 		} else if (entity[1].equals("board")) {
 			BoardController bc = new BoardController(entity[2]);
 			bc.doGet(request, response);
+			
+		} else if (entity[1].equals("comment")) {
+			CommentController cc = new CommentController(entity[2]);
+			cc.doGet(request, response);
+			
 		}
 	}
 	

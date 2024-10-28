@@ -41,9 +41,9 @@ table th, table td { padding: 5px 10px; }
 
 
 /* paging */
-.page { margin: 50px 0 20px; text-align: center; }
+.page { margin: 50px 0 20px; text-align: center;}
 .page ul { display: inline-block; }
-.page li { display: inline-block; width: 20px; height: 20px; cursor: pointer; }
+.page li { display: inline-block; width: 30px; height: 30px; cursor: pointer; }
 .page .on { background: black; color: white; }
 
 
@@ -53,7 +53,7 @@ table th, table td { padding: 5px 10px; }
 .detailContents .fileDown img { margin-right: 10px; }
 
 .commentContents form[name="frm"] { margin-bottom: 40px; }
-.commentContents .commentWriter { border: 1px solid lightgray; display: inline-block; padding: 0 100px; }
+.commentContents .commentWriter { border: 1px solid lightgray; display: inline-block; padding: 0 50px; }
 .commentContents input { width: 600px; height: 25px; float: left; }
 .commentContents .replyBtn { background: #555; width: 188px; float: left; border: none; cursor: pointer;
 	color: white; height: 27px; }
